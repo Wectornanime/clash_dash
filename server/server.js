@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const { saveBattlehData } = require('./services/apiData');
+const { getCardWinLossPercentage } = require('./services/consutas');
 require('dotenv').config();
 
 const app = express();
@@ -15,6 +16,15 @@ app.get('/api/battleApi', async (req, res) => {
   res.json({ message: 'Battle API data saved successfully' });
 });
 
+app.get('/api/porcentagem', async (req, res) => {
+  const {cardName, startTime, endTime} = req.body;
+  // Exemplo de uso
+  await getCardWinLossPercentage('Witch', '2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z')
+    .then(result => res.json(result))
+    .catch(err => console.error(err));
+  ;
+});
+
 // Conexão com o MongoDB
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Conectado ao MongoDB'))
@@ -23,7 +33,7 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
 // Servir os arquivos estáticos do React em produção
 // if (process.env.NODE_ENV === 'production') {
 //   app.use(express.static(path.join(__dirname, '../client/build')));
-  
+
 //   app.get('*', (req, res) => {
 //     res.sendFile(path.resolve(__dirname, '../client', 'build', 'index.html'));
 //   });

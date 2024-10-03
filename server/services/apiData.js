@@ -1,6 +1,20 @@
 const axios = require('axios');
 const Battle = require('../models/Battle');
 
+function formatDate(dateString) {
+  // A string de entrada é do tipo "YYYYMMDDTHHMMSS.sssZ"
+  const year = dateString.slice(0, 4);
+  const month = dateString.slice(4, 6);
+  const day = dateString.slice(6, 8);
+  const hour = dateString.slice(9, 11);
+  const minute = dateString.slice(11, 13);
+  const second = dateString.slice(13, 15);
+  
+  // Retorna a data formatada em ISO 8601
+  return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}Z`);
+}
+
+
 // Função para salvar dados da API no MongoDB
 async function saveBattlehData() {
   try {
@@ -43,7 +57,7 @@ async function saveBattlehData() {
         },
         p1_crowns: battle.team[0].crowns,
         p2_crowns: battle.opponent[0].crowns,
-        date: battle.battleTime
+        battleTime: formatDate(battle.battleTime)
       });
 
       await newBattle.save();

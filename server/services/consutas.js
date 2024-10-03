@@ -305,6 +305,90 @@ async function calcularVitoriasCartaZTrof(intCarta, percTrof, startTime, endTime
   }
 }
 
+// 5
+async function listarCombosVitoriosos(tamanhoCombo, percentualVitorias, startTime, endTime) {
+  try {
+    const resultado = await Battle.aggregate([
+      {
+        $match: {
+          battleTime: { 
+            $gte: new Date(startTime), 
+            $lte: new Date(endTime) 
+          }
+        }
+      },
+      {
+        $project: {
+          vencedor1: { $gt: ["$p1_crowns", "$p2_crowns"] },
+          vencedor2: { $gt: ["$p2_crowns", "$p1_crowns"] },
+          cartasPlayer1: { 
+            $slice: [{ $map: { input: "$player1.cards", as: "card", in: "$$card.name" } }, 0, tamanhoCombo] 
+          },
+          cartasPlayer2: { 
+            $slice: [{ $map: { input: "$player2.cards", as: "card", in: "$$card.name" } }, 0, tamanhoCombo] 
+          }
+        }
+      },
+      {
+        $facet: {
+          vitoriasPlayer1: [
+            { $match: { vencedor1: true } },
+            { $unwind: "$cartasPlayer1" },
+            { $group: { _id: "$cartasPlayer1", totalVitorias: { $sum: 1 } } }
+          ],
+          vitoriasPlayer2: [
+            { $match: { vencedor2: true } },
+            { $unwind: "$cartasPlayer2" },
+            { $group: { _id: "$cartasPlayer2", totalVitorias: { $sum: 1 } } }
+          ],
+          totalPartidas: [
+            { $count: "totalPartidas" }
+          ]
+        }
+      },
+      {
+        $project: {
+          vitoriasPlayer1: 1,
+          vitoriasPlayer2: 1,
+          totalPartidas: { $arrayElemAt: ["$totalPartidas.totalPartidas", 0] }
+        }
+      },
+      {
+        $addFields: {
+          combinadosVitoriosos: { $concatArrays: ["$vitoriasPlayer1", "$vitoriasPlayer2"] }
+        }
+      },
+      {
+        $unwind: "$combinadosVitoriosos"
+      },
+      {
+        $group: {
+          _id: "$combinadosVitoriosos._id",
+          totalVitorias: { $sum: "$combinadosVitoriosos.totalVitorias" }
+        }
+      },
+      {
+        $addFields: {
+          percentualVitorias: { $multiply: [{ $divide: ["$totalVitorias", "$totalPartidas"] }, 100] }
+        }
+      },
+      {
+        $match: {
+          percentualVitorias: { $gte: percentualVitorias }
+        }
+      },
+      {
+        $sort: { percentualVitorias: -1 }
+      }
+    ]);
+
+    return resultado;
+  } catch (error) {
+    console.error('Erro ao listar combos vitoriosos:', error);
+    throw new Error('Erro ao listar combos vitoriosos.');
+  }
+}
+
 // ex 1
 async function listarCartasMaisFrequentesEmVitorias() {
   try {
@@ -515,4 +599,4 @@ async function rankingCartasMaisDerrotas(startTime, endTime) {
 }
 
 
-module.exports = { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo, listarCartasMaisFrequentesEmVitorias, cartasComMaioresTaxasDeVitoria, rankingCartasMaisDerrotas, calcularVitoriasCartaZTrof }
+module.exports = { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo, listarCartasMaisFrequentesEmVitorias, cartasComMaioresTaxasDeVitoria, rankingCartasMaisDerrotas, calcularVitoriasCartaZTrof, listarCombosVitoriosos }

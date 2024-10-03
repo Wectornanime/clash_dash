@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const { saveBattlehData } = require('./services/apiData');
-const { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo, listarCartasMaisFrequentesEmVitorias, cartasComMaioresTaxasDeVitoria, rankingCartasMaisDerrotas, calcularVitoriasCartaZTrof } = require('./services/consutas');
+const { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo, listarCartasMaisFrequentesEmVitorias, cartasComMaioresTaxasDeVitoria, rankingCartasMaisDerrotas, calcularVitoriasCartaZTrof, listarCombosVitoriosos } = require('./services/consutas');
 require('dotenv').config();
 
 const app = express();
@@ -41,6 +41,13 @@ app.get('/api/calcularDerrotasPorCombo', async (req, res) => {
 app.get('/api/calcularVitoriasCartaZTrof', async (req, res) => {
   const { carta, percTrof, startTime, endTime } = req.body;
   await calcularVitoriasCartaZTrof(carta, percTrof, startTime, endTime)
+    .then(result => res.json(result))
+    .catch(err => console.error(err));
+});
+
+app.get('/api/listarCombosVitoriosos', async (req, res) => {
+  const { tamanhoCombo, percentualVitorias, startTime, endTime } = req.body;
+  await listarCombosVitoriosos(tamanhoCombo, percentualVitorias, startTime, endTime)
     .then(result => res.json(result))
     .catch(err => console.error(err));
 });

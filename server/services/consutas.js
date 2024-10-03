@@ -178,48 +178,31 @@ async function calcularDerrotasPorCombo(cartasCombo, startTime, endTime) {
       },
       {
         $project: {
-          player1Combo: {
-            $size: {
-              $filter: {
-                input: "$player1.cards",
-                as: "card",
-                cond: { $in: ["$$card.name", cartasCombo] }
-              }
+          cardsNames: {
+            $cond: {
+              if: { $lt: ["$p1_crowns", "$p2_crowns"] },
+              then: { $map: { input: "$player1.cards", as: "card", in: "$$card.name" } },
+              else: { $map: { input: "$player2.cards", as: "card", in: "$$card.name" } }
             }
-          },
-          player2Combo: {
-            $size: {
-              $filter: {
-                input: "$player2.cards",
-                as: "card",
-                cond: { $in: ["$$card.name", cartasCombo] }
-              }
-            }
-          },
-          p1_crowns: 1,
-          p2_crowns: 1
+          }
         }
       },
       {
-        $group: {
-          _id: null,
-          derrotas: {
-            $sum: {
-              $cond: [
-                {
-                  $or: [
-                    { $and: [{ $lt: ["$p1_crowns", "$p2_crowns"] }, { $eq: ["$player1Combo", cartasCombo.length] }] },
-                    { $and: [{ $lt: ["$p2_crowns", "$p1_crowns"] }, { $eq: ["$player2Combo", cartasCombo.length] }] }
-                  ]
-                },
-                1,
-                0
-              ]
+        $project: {
+          count: {
+            $size: {
+              $filter: {
+                input: "$cardsNames",
+                as: "cardName",
+                cond: { $in: ["$$cardName", cartasCombo] }
+              }
             }
           }
         }
       }
     ]);
+
+    const quantidadeDeDerrota = resultado.filter(obj => obj.count === cartasCombo.length).length;
 
     // Se não houver resultados, retornar derrotas 0
     if (resultado.length === 0) {
@@ -229,7 +212,10 @@ async function calcularDerrotasPorCombo(cartasCombo, startTime, endTime) {
       };
     }
 
-    return resultado[0].derrotas;
+    return {
+      quantidadeDeDerrota: quantidadeDeDerrota,
+      total: resultado.length
+    };
   } catch (error) {
     console.error('Erro ao calcular derrotas:', error);
     throw new Error('Erro ao calcular derrotas.');
@@ -242,9 +228,9 @@ async function calcularVitoriasCartaZTrof(intCarta, percTrof, startTime, endTime
     const resultado = await Battle.aggregate([
       {
         $match: {
-          battleTime: { 
-            $gte: new Date(startTime), 
-            $lte: new Date(endTime) 
+          battleTime: {
+            $gte: new Date(startTime),
+            $lte: new Date(endTime)
           },
           $or: [
             { 'player1.cards.name': intCarta },
@@ -267,21 +253,21 @@ async function calcularVitoriasCartaZTrof(intCarta, percTrof, startTime, endTime
       {
         $match: {
           $or: [
-            { 
-              vencedor1: true, 
-              $expr: { 
+            {
+              vencedor1: true,
+              $expr: {
                 $lte: [
-                  { $subtract: [ "$player1_trophies", { $multiply: [ "$player2_trophies", (1 - percTrof / 100) ] } ] }, 
+                  { $subtract: ["$player1_trophies", { $multiply: ["$player2_trophies", (1 - percTrof / 100)] }] },
                   0
                 ]
               },
               p2_crowns: { $gte: 2 }
             },
-            { 
-              vencedor2: true, 
-              $expr: { 
+            {
+              vencedor2: true,
+              $expr: {
                 $lte: [
-                  { $subtract: [ "$player2_trophies", { $multiply: [ "$player1_trophies", (1 - percTrof / 100) ] } ] }, 
+                  { $subtract: ["$player2_trophies", { $multiply: ["$player1_trophies", (1 - percTrof / 100)] }] },
                   0
                 ]
               },
@@ -311,9 +297,9 @@ async function listarCombosVitoriosos(tamanhoCombo, percentualVitorias, startTim
     const resultado = await Battle.aggregate([
       {
         $match: {
-          battleTime: { 
-            $gte: new Date(startTime), 
-            $lte: new Date(endTime) 
+          battleTime: {
+            $gte: new Date(startTime),
+            $lte: new Date(endTime)
           }
         }
       },
@@ -321,11 +307,11 @@ async function listarCombosVitoriosos(tamanhoCombo, percentualVitorias, startTim
         $project: {
           vencedor1: { $gt: ["$p1_crowns", "$p2_crowns"] },
           vencedor2: { $gt: ["$p2_crowns", "$p1_crowns"] },
-          cartasPlayer1: { 
-            $slice: [{ $map: { input: "$player1.cards", as: "card", in: "$$card.name" } }, 0, tamanhoCombo] 
+          cartasPlayer1: {
+            $slice: [{ $map: { input: "$player1.cards", as: "card", in: "$$card.name" } }, 0, tamanhoCombo]
           },
-          cartasPlayer2: { 
-            $slice: [{ $map: { input: "$player2.cards", as: "card", in: "$$card.name" } }, 0, tamanhoCombo] 
+          cartasPlayer2: {
+            $slice: [{ $map: { input: "$player2.cards", as: "card", in: "$$card.name" } }, 0, tamanhoCombo]
           }
         }
       },

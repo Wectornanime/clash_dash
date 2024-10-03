@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const { saveBattlehData } = require('./services/apiData');
-const { getCardWinLossPercentage } = require('./services/consutas');
+const { getCardWinLossPercentage, getHighWinRateDecks } = require('./services/consutas');
 require('dotenv').config();
 
 const app = express();
@@ -18,11 +18,18 @@ app.get('/api/battleApi', async (req, res) => {
 
 app.get('/api/porcentagem', async (req, res) => {
   const {cardName, startTime, endTime} = req.body;
-  // Exemplo de uso
-  await getCardWinLossPercentage('Witch', '2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z')
+  await getCardWinLossPercentage(cardName, startTime, endTime)
     .then(result => res.json(result))
     .catch(err => console.error(err));
-  ;
+});
+
+app.get('/api/decksCompletos', async (req, res) => {
+  const startDate = new Date('2024-01-01');
+  const endDate = new Date('2024-12-31');
+  const winRateThreshold = 60
+  await getHighWinRateDecks(startDate, endDate, winRateThreshold)
+    .then(result => res.json(result))
+    .catch(err => console.error(err));
 });
 
 // Conexão com o MongoDB

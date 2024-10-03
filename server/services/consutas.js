@@ -100,5 +100,64 @@ async function getCardWinLossPercentage(cardName, startTime, endTime) {
   }
 }
 
+async function getHighWinRateDecks(startDate, endDate, winRateThreshold) {
+  try {
+    const results = await Battle.aggregate([
+      {
+        $match: {
+          battleTime: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $project: {
+          player1Cards: '$player1.cards.name',
+          player2Cards: '$player2.cards.name',
+          p1_crowns: '$p1_crowns',
+          p2_crowns: '$p2_crowns'
+        }
+      },
+      {
+        $group: {
+          _id: {
+            player1Deck: '$player1Cards',
+            player2Deck: '$player2Cards'
+          },
+          wins: {
+            $sum: {
+              $cond: [
+                { $gt: ['$p1_crowns', '$p2_crowns'] }, 1, 0
+              ]
+            }
+          },
+          totalBattles: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          winRate: {
+            $multiply: [
+              { $divide: ['$wins', '$totalBattles'] },
+              100
+            ]
+          },
+          deck: '$_id'
+        }
+      },
+      {
+        $match: {
+          winRate: { $gt: winRateThreshold }
+        }
+      }
+    ]);
 
-module.exports = { getCardWinLossPercentage }
+    console.log(results.map(result => ({
+      player1Deck: result.deck.player1Deck,
+      player2Deck: result.deck.player2Deck,
+      winRate: result.winRate
+    })));
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+module.exports = { getCardWinLossPercentage, getHighWinRateDecks }

@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const { saveBattlehData } = require('./services/apiData');
-const { getCardWinLossPercentage, getHighWinRateDecks } = require('./services/consutas');
+const { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo } = require('./services/consutas');
 require('dotenv').config();
 
 const app = express();
@@ -24,10 +24,15 @@ app.get('/api/porcentagem', async (req, res) => {
 });
 
 app.get('/api/decksCompletos', async (req, res) => {
-  const startDate = new Date('2024-01-01');
-  const endDate = new Date('2024-12-31');
-  const winRateThreshold = 60
+  const { startDate, endDate, winRateThreshold } = req.body;
   await getHighWinRateDecks(startDate, endDate, winRateThreshold)
+    .then(result => res.json(result))
+    .catch(err => console.error(err));
+});
+
+app.get('/api/calcularDerrotasPorCombo', async (req, res) => {
+  const {cartasCombo, startTime, endTime} = req.body;
+  await calcularDerrotasPorCombo(cartasCombo, startTime, endTime)
     .then(result => res.json(result))
     .catch(err => console.error(err));
 });

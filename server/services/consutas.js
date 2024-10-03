@@ -160,4 +160,77 @@ async function getHighWinRateDecks(startDate, endDate, winRateThreshold) {
   }
 }
 
-module.exports = { getCardWinLossPercentage, getHighWinRateDecks }
+async function calcularDerrotasPorCombo(cartasCombo, startTime, endTime) {
+  try {
+    // Converter os timestamps para Date
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+
+    // Usar a agregação para calcular as derrotas
+    const resultado = await Battle.aggregate([
+      {
+        $match: {
+          battleTime: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $project: {
+          player1Combo: {
+            $size: {
+              $filter: {
+                input: "$player1.cards",
+                as: "card",
+                cond: { $in: ["$$card.name", cartasCombo] }
+              }
+            }
+          },
+          player2Combo: {
+            $size: {
+              $filter: {
+                input: "$player2.cards",
+                as: "card",
+                cond: { $in: ["$$card.name", cartasCombo] }
+              }
+            }
+          },
+          p1_crowns: 1,
+          p2_crowns: 1
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          derrotas: {
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $and: [{ $lt: ["$p1_crowns", "$p2_crowns"] }, { $eq: ["$player1Combo", cartasCombo.length] }] },
+                    { $and: [{ $lt: ["$p2_crowns", "$p1_crowns"] }, { $eq: ["$player2Combo", cartasCombo.length] }] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    // Se não houver resultados, retornar derrotas 0
+    if (resultado.length === 0) {
+      return {
+        derrotas: 0,
+        message: 'Nenhuma derrota encontrada com o combo de cartas no intervalo.'
+      };
+    }
+
+    return resultado[0].derrotas;
+  } catch (error) {
+    console.error('Erro ao calcular derrotas:', error);
+    throw new Error('Erro ao calcular derrotas.');
+  }
+}
+
+module.exports = { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo }

@@ -16,10 +16,10 @@ function formatDate(dateString) {
 
 
 // Função para salvar dados da API no MongoDB
-async function saveBattlehData() {
+async function saveBattlehData(playerTag) {
   try {
     // Fazendo uma requisição à API
-    const response = await axios.get(`${process.env.CLASH_API_URL}/players/%232RVQG28R2/battlelog`, {
+    const response = await axios.get(`${process.env.CLASH_API_URL}/players/%${playerTag}/battlelog`, {
       headers: {
         Authorization: `Bearer ${process.env.CLASH_API_TOKEN}`
       }

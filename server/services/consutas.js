@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Battle = require('../models/Battle');
 
+// 1
 async function getCardWinLossPercentage(cardName, startTime, endTime) {
   try {
     const result = await Battle.aggregate([
@@ -100,6 +101,7 @@ async function getCardWinLossPercentage(cardName, startTime, endTime) {
   }
 }
 
+// 2
 async function getHighWinRateDecks(startDate, endDate, winRateThreshold) {
   try {
     const results = await Battle.aggregate([
@@ -160,6 +162,7 @@ async function getHighWinRateDecks(startDate, endDate, winRateThreshold) {
   }
 }
 
+// 3
 async function calcularDerrotasPorCombo(cartasCombo, startTime, endTime) {
   try {
     // Converter os timestamps para Date
@@ -233,6 +236,76 @@ async function calcularDerrotasPorCombo(cartasCombo, startTime, endTime) {
   }
 }
 
+// 4
+async function calcularVitoriasCartaZTrof(intCarta, percTrof, startTime, endTime) {
+  try {
+    const resultado = await Battle.aggregate([
+      {
+        $match: {
+          battleTime: { 
+            $gte: new Date(startTime), 
+            $lte: new Date(endTime) 
+          },
+          $or: [
+            { 'player1.cards.name': intCarta },
+            { 'player2.cards.name': intCarta }
+          ]
+        }
+      },
+      {
+        $project: {
+          vencedor1: { $gt: ["$p1_crowns", "$p2_crowns"] },
+          vencedor2: { $gt: ["$p2_crowns", "$p1_crowns"] },
+          player1_trophies: "$player1.startingTrophies",
+          player2_trophies: "$player2.startingTrophies",
+          p1_crowns: 1,
+          p2_crowns: 1,
+          player1_cards: "$player1.cards",
+          player2_cards: "$player2.cards"
+        }
+      },
+      {
+        $match: {
+          $or: [
+            { 
+              vencedor1: true, 
+              $expr: { 
+                $lte: [
+                  { $subtract: [ "$player1_trophies", { $multiply: [ "$player2_trophies", (1 - percTrof / 100) ] } ] }, 
+                  0
+                ]
+              },
+              p2_crowns: { $gte: 2 }
+            },
+            { 
+              vencedor2: true, 
+              $expr: { 
+                $lte: [
+                  { $subtract: [ "$player2_trophies", { $multiply: [ "$player1_trophies", (1 - percTrof / 100) ] } ] }, 
+                  0
+                ]
+              },
+              p1_crowns: { $gte: 2 }
+            }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalVitorias: { $sum: 1 }
+        }
+      }
+    ]);
+
+    return resultado.length > 0 ? resultado[0].totalVitorias : 0;
+  } catch (error) {
+    console.error('Erro ao calcular vitórias:', error);
+    throw new Error('Erro ao calcular vitórias.');
+  }
+}
+
+// ex 1
 async function listarCartasMaisFrequentesEmVitorias() {
   try {
     const resultado = await Battle.aggregate([
@@ -275,6 +348,7 @@ async function listarCartasMaisFrequentesEmVitorias() {
   }
 }
 
+// ex 2
 async function cartasComMaioresTaxasDeVitoria(startTime, endTime) {
   try {
     const resultado = await Battle.aggregate([
@@ -383,6 +457,7 @@ async function cartasComMaioresTaxasDeVitoria(startTime, endTime) {
   }
 }
 
+// ex 3
 async function rankingCartasMaisDerrotas(startTime, endTime) {
   try {
     const resultado = await Battle.aggregate([
@@ -440,4 +515,4 @@ async function rankingCartasMaisDerrotas(startTime, endTime) {
 }
 
 
-module.exports = { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo, listarCartasMaisFrequentesEmVitorias, cartasComMaioresTaxasDeVitoria, rankingCartasMaisDerrotas }
+module.exports = { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo, listarCartasMaisFrequentesEmVitorias, cartasComMaioresTaxasDeVitoria, rankingCartasMaisDerrotas, calcularVitoriasCartaZTrof }

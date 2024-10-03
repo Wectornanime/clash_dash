@@ -233,4 +233,211 @@ async function calcularDerrotasPorCombo(cartasCombo, startTime, endTime) {
   }
 }
 
-module.exports = { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo }
+async function listarCartasMaisFrequentesEmVitorias() {
+  try {
+    const resultado = await Battle.aggregate([
+      {
+        $project: {
+          vencedor1: { $gt: ["$p1_crowns", "$p2_crowns"] },
+          vencedor2: { $gt: ["$p2_crowns", "$p1_crowns"] },
+          player1_cards: "$player1.cards",
+          player2_cards: "$player2.cards"
+        }
+      },
+      {
+        $project: {
+          cartasVencedoras: {
+            $cond: [
+              { $eq: ["$vencedor1", true] },
+              "$player1_cards",
+              {
+                $cond: [{ $eq: ["$vencedor2", true] }, "$player2_cards", []]
+              }
+            ]
+          }
+        }
+      },
+      { $unwind: "$cartasVencedoras" },
+      {
+        $group: {
+          _id: "$cartasVencedoras.name",
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 10 } // Limitando para as 10 cartas mais frequentes
+    ]);
+
+    return resultado;
+  } catch (error) {
+    console.error('Erro ao listar as cartas mais frequentes em vitórias:', error);
+    throw new Error('Erro ao listar as cartas mais frequentes em vitórias.');
+  }
+}
+
+async function cartasComMaioresTaxasDeVitoria(startTime, endTime) {
+  try {
+    const resultado = await Battle.aggregate([
+      {
+        $match: {
+          battleTime: {
+            $gte: new Date(startTime),
+            $lte: new Date(endTime)
+          }
+        }
+      },
+      {
+        $project: {
+          vencedor1: { $gt: ["$p1_crowns", "$p2_crowns"] },
+          vencedor2: { $gt: ["$p2_crowns", "$p1_crowns"] },
+          player1_cards: "$player1.cards",
+          player2_cards: "$player2.cards"
+        }
+      },
+      {
+        $facet: {
+          vitorias: [
+            {
+              $project: {
+                cartasVencedoras: {
+                  $cond: [
+                    { $eq: ["$vencedor1", true] },
+                    "$player1_cards",
+                    {
+                      $cond: [{ $eq: ["$vencedor2", true] }, "$player2_cards", []]
+                    }
+                  ]
+                }
+              }
+            },
+            { $unwind: "$cartasVencedoras" },
+            {
+              $group: {
+                _id: "$cartasVencedoras.name",
+                vitorias: { $sum: 1 }
+              }
+            }
+          ],
+          aparicoes: [
+            { $unwind: "$player1.cards" },
+            {
+              $group: {
+                _id: "$player1.cards.name",
+                aparicoes: { $sum: 1 }
+              }
+            },
+            { $unwind: "$player2.cards" },
+            {
+              $group: {
+                _id: "$player2.cards.name",
+                aparicoes: { $sum: 1 }
+              }
+            },
+            {
+              $group: {
+                _id: "$_id",
+                aparicoes: { $sum: "$aparicoes" }
+              }
+            }
+          ]
+        }
+      },
+      {
+        $project: {
+          taxasDeVitoria: {
+            $map: {
+              input: "$vitorias",
+              as: "vitoria",
+              in: {
+                carta: "$$vitoria._id",
+                taxaVitoria: {
+                  $divide: [
+                    "$$vitoria.vitorias",
+                    {
+                      $cond: {
+                        if: {
+                          $eq: [
+                            { $type: { $arrayElemAt: ["$aparicoes.aparicoes", { $indexOfArray: ["$aparicoes._id", "$$vitoria._id"] }] } },
+                            "double"
+                          ]
+                        },
+                        then: { $arrayElemAt: ["$aparicoes.aparicoes", { $indexOfArray: ["$aparicoes._id", "$$vitoria._id"] }] },
+                        else: 1
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      { $sort: { "taxasDeVitoria.taxaVitoria": -1 } },
+      { $limit: 10 } // Limitando para as 10 cartas com maiores taxas de vitória
+    ]);
+
+    return resultado;
+  } catch (error) {
+    console.error('Erro ao calcular as cartas com maiores taxas de vitória:', error);
+    throw new Error('Erro ao calcular as cartas com maiores taxas de vitória.');
+  }
+}
+
+async function rankingCartasMaisDerrotas(startTime, endTime) {
+  try {
+    const resultado = await Battle.aggregate([
+      {
+        $match: {
+          battleTime: {
+            $gte: new Date(startTime),
+            $lte: new Date(endTime)
+          }
+        }
+      },
+      {
+        $project: {
+          vencedor1: { $gt: ["$p1_crowns", "$p2_crowns"] },
+          vencedor2: { $gt: ["$p2_crowns", "$p1_crowns"] },
+          player1_cards: "$player1.cards",
+          player2_cards: "$player2.cards"
+        }
+      },
+      {
+        $facet: {
+          derrotas: [
+            {
+              $project: {
+                cartasDerrotadas: {
+                  $cond: [
+                    { $eq: ["$vencedor1", true] },
+                    "$player2_cards",
+                    {
+                      $cond: [{ $eq: ["$vencedor2", true] }, "$player1_cards", []]
+                    }
+                  ]
+                }
+              }
+            },
+            { $unwind: "$cartasDerrotadas" },
+            {
+              $group: {
+                _id: "$cartasDerrotadas.name",
+                derrotas: { $sum: 1 }
+              }
+            },
+            { $sort: { derrotas: -1 } }
+          ]
+        }
+      },
+      { $limit: 10 } // Limitando para as 10 cartas com mais derrotas
+    ]);
+
+    return resultado;
+  } catch (error) {
+    console.error('Erro ao calcular o ranking das cartas com mais derrotas:', error);
+    throw new Error('Erro ao calcular o ranking das cartas com mais derrotas.');
+  }
+}
+
+
+module.exports = { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo, listarCartasMaisFrequentesEmVitorias, cartasComMaioresTaxasDeVitoria, rankingCartasMaisDerrotas }

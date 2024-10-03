@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const { saveBattlehData } = require('./services/apiData');
-const { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo } = require('./services/consutas');
+const { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo, listarCartasMaisFrequentesEmVitorias, cartasComMaioresTaxasDeVitoria, rankingCartasMaisDerrotas } = require('./services/consutas');
 require('dotenv').config();
 
 const app = express();
@@ -33,6 +33,26 @@ app.get('/api/decksCompletos', async (req, res) => {
 app.get('/api/calcularDerrotasPorCombo', async (req, res) => {
   const {cartasCombo, startTime, endTime} = req.body;
   await calcularDerrotasPorCombo(cartasCombo, startTime, endTime)
+  .then(result => res.json(result))
+  .catch(err => console.error(err));
+});
+
+app.get('/api/listarCartasMaisFrequentesEmVitorias', async (req, res) => {
+  await listarCartasMaisFrequentesEmVitorias()
+  .then(result => res.json(result))
+  .catch(err => console.error(err));
+});
+
+app.get('/api/cartasComMaioresTaxasDeVitoria', async (req, res) => {
+  const {startTime, endTime} = req.body;
+  await cartasComMaioresTaxasDeVitoria(startTime, endTime)
+    .then(result => res.json(result))
+    .catch(err => console.error(err));
+});
+
+app.get('/api/rankingCartasMaisDerrotas', async (req, res) => {
+  const {startTime, endTime} = req.body;
+  await rankingCartasMaisDerrotas(startTime, endTime)
     .then(result => res.json(result))
     .catch(err => console.error(err));
 });

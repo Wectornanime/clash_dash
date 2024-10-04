@@ -223,71 +223,123 @@ async function calcularDerrotasPorCombo(cartasCombo, startTime, endTime) {
 }
 
 // 4
-async function calcularVitoriasCartaZTrof(intCarta, percTrof, startTime, endTime) {
+async function calcularVitoriasCartaZTrof(carta, percTrof, startTime, endTime) {
   try {
+    // Converter os timestamps para Date
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+
+    const percentualMenosTrofeus = percTrof / 100;
+
     const resultado = await Battle.aggregate([
       {
         $match: {
-          battleTime: {
-            $gte: new Date(startTime),
-            $lte: new Date(endTime)
-          },
-          $or: [
-            { 'player1.cards.name': intCarta },
-            { 'player2.cards.name': intCarta }
-          ]
+          battleTime: { $gte: startDate, $lte: endDate } // Filtra por intervalo de datas
         }
       },
       {
         $project: {
-          vencedor1: { $gt: ["$p1_crowns", "$p2_crowns"] },
-          vencedor2: { $gt: ["$p2_crowns", "$p1_crowns"] },
-          player1_trophies: "$player1.startingTrophies",
-          player2_trophies: "$player2.startingTrophies",
-          p1_crowns: 1,
-          p2_crowns: 1,
-          player1_cards: "$player1.cards",
-          player2_cards: "$player2.cards"
+          winner: {
+            $cond: {
+              if: { $gt: ["$p1_crowns", "$p2_crowns"] },
+              then: "$player1",
+              else: "$player2"
+            }
+          },
+          loser: {
+            $cond: {
+              if: { $gt: ["$p1_crowns", "$p2_crowns"] },
+              then: "$player2",
+              else: "$player1"
+            }
+          },
+          cardsNames: {
+            $cond: {
+              if: { $gt: ["$p1_crowns", "$p2_crowns"] },
+              then: { $map: { input: "$player1.cards", as: "card", in: "$$card.name" } },
+              else: { $map: { input: "$player2.cards", as: "card", in: "$$card.name" } }
+            }
+          },
+          winnerTrophies: {
+            $cond: {
+              if: { $gt: ["$p1_crowns", "$p2_crowns"] },
+              then: "$player1.startingTrophies",
+              else: "$player2.startingTrophies"
+            }
+          },
+          loserTrophies: {
+            $cond: {
+              if: { $gt: ["$p1_crowns", "$p2_crowns"] },
+              then: "$player2.startingTrophies",
+              else: "$player1.startingTrophies"
+            }
+          },
+          loserCrowns: {
+            $cond: {
+              if: { $gt: ["$p1_crowns", "$p2_crowns"] },
+              then: "$p2_crowns",
+              else: "$p1_crowns"
+            }
+          }
         }
       },
       {
         $match: {
-          $or: [
-            {
-              vencedor1: true,
-              $expr: {
-                $lte: [
-                  { $subtract: ["$player1_trophies", { $multiply: ["$player2_trophies", (1 - percTrof / 100)] }] },
-                  0
+          $expr: {
+            $and: [
+              {
+                $lt: [
+                  "$winnerTrophies",
+                  { $multiply: ["$loserTrophies", 1 - percentualMenosTrofeus] } // O vencedor tem pelo menos x% a menos que o perdedor
                 ]
               },
-              p2_crowns: { $gte: 2 }
-            },
-            {
-              vencedor2: true,
-              $expr: {
-                $lte: [
-                  { $subtract: ["$player2_trophies", { $multiply: ["$player1_trophies", (1 - percTrof / 100)] }] },
-                  0
-                ]
-              },
-              p1_crowns: { $gte: 2 }
+              {
+                $gte: ["$loserCrowns", 2] // O perdedor deve ter pelo menos 2 coroas
+              }
+            ]
+          }
+        }
+      },
+      {
+        $project: {
+          matchedCards: {
+            $filter: {
+              input: "$cardsNames",
+              as: "cardName",
+              cond: { $eq: ["$$cardName", carta] } // Verifica se o nome do card é igual ao card específico
             }
-          ]
+          }
+        }
+      },
+      {
+        $project: {
+          count: { $size: "$matchedCards" } // Conta quantas correspondências existem
         }
       },
       {
         $group: {
           _id: null,
-          totalVitorias: { $sum: 1 }
+          total: { $sum: "$count" } // Soma o total de correspondências
         }
       }
     ]);
+    
 
-    return resultado.length > 0 ? resultado[0].totalVitorias : 0;
+    const totalContagem = resultado.length > 0 ? resultado[0].total : 0;
+
+    // Se não houver resultados, retornar derrotas 0
+    if (resultado.length === 0) {
+      return {
+        derrotas: 0,
+        message: 'Nenhuma derrota encontrada.'
+      };
+    }
+
+    return totalContagem;
+
   } catch (error) {
-    console.error('Erro ao calcular vitórias:', error);
-    throw new Error('Erro ao calcular vitórias.');
+    console.error('Erro ao calcular derrotas:', error);
+    throw new Error('Erro ao calcular derrotas.');
   }
 }
 

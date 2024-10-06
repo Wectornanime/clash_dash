@@ -1,0 +1,17 @@
+.container {
+    background-color: white;
+    width: 200px;
+    height: 200px;
+    border-radius: 10px;
+}
+
+.inputs {
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    padding: 3px;
+    border-radius: 5px;
+    cursor: pointer;
+}

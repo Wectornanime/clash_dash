@@ -3,6 +3,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const { saveBattlehData } = require('./services/apiData');
 const { getCardWinLossPercentage, getHighWinRateDecks, calcularDerrotasPorCombo, listarCartasMaisFrequentesEmVitorias, cartasComMaioresTaxasDeVitoria, rankingCartasMaisDerrotas, calcularVitoriasCartaZTrof, listarCombosVitoriosos } = require('./services/consutas');
+const { verificaDados } = require('./middlewares/verificaDados');
 require('dotenv').config();
 
 const app = express();
@@ -11,11 +12,11 @@ const app = express();
 app.use(express.json());
 
 app.use(async (req, res, next) => {
-  const haveData = await verificarUsuarios();
-  if (haveData > 0) {
-    next();
+  const haveData = await verificaDados();
+  if (!haveData) {
+    res.json({ message: 'Sem dados para retornar' });
   }
-  res.json({ message: 'Sem dados para retornar' });
+  next();
 });
 
 // Rotas da API

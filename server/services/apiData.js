@@ -62,9 +62,11 @@ async function saveBattlehData(playerTag) {
 
       await newBattle.save();
       // console.log(`Partida entre ${match.player1} e ${match.player2} salva com sucesso!`);
+      return { sucess: true };
     }
   } catch (error) {
     console.error('Erro ao salvar dados da API:', error);
+    return { sucess: false };
   }
 };
 

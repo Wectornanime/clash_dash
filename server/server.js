@@ -10,11 +10,22 @@ const app = express();
 // Middleware para parsing de JSON
 app.use(express.json());
 
+app.use(async (req, res, next) => {
+  const haveData = await verificarUsuarios();
+  if (haveData > 0) {
+    next();
+  }
+  res.json({ message: 'Sem dados para retornar' });
+});
+
 // Rotas da API
 app.get('/api/battleApi', async (req, res) => {
   const { playerTag } = req.body;
-  await saveBattlehData(playerTag);
-  res.json({ message: 'Battle API data saved successfully' });
+  const { sucess } = await saveBattlehData(playerTag);
+  if (sucess) {
+    res.json({ message: 'Dados salvos com sucesso' });
+  }
+  res.json({ message: 'Falha ao salvar os dados' });
 });
 
 app.get('/api/porcentagem', async (req, res) => {

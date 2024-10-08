@@ -3,7 +3,7 @@ import './card.css';
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const Card = ({ apiUrl, title, inputs }) => {
+const Card = ({ apiUrl, title, inputs=null }) => {
     const [inputValues, setInputValues] = useState({});
     const [result, setResult] = useState('');
 
@@ -19,8 +19,8 @@ const Card = ({ apiUrl, title, inputs }) => {
         console.log(inputValues)
         try {
             const response = await axios.get(apiUrl, inputValues);
-            console.log(response)
-            setResult(response.data); // Ajuste conforme a estrutura da resposta
+            console.log(response.data)
+            setResult(JSON.stringify(response.data, null, 2)); // Ajuste conforme a estrutura da resposta
         } catch (error) {
             console.error('Erro ao fazer a requisição:', error);
             setResult('Ocorreu um erro.');
@@ -31,7 +31,7 @@ const Card = ({ apiUrl, title, inputs }) => {
         <div style={{ border: '1px solid #ccc', padding: '20px', margin: '10px' }}>
             <h3>{title}</h3>
             <div className='inputs'>
-                {inputs.map((input, index) => (
+                {inputs && inputs.map((input, index) => (
                     <input
                         key={index}
                         type={input.type} // Tipo do input definido pela prop

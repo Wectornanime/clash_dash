@@ -31,15 +31,63 @@ function App() {
       ],
     },
     {
-      title: "Card 2",
-      apiUrl: "https://sua-api.com/endpoint2",
+      title: "Decks Completos",
+      apiUrl: "/api/decksCompletos",
       inputs: [
-        { name: "input1", type: "text", placeholder: "Título" },
-        { name: "input2", type: "date", placeholder: "Data" },
-        { name: "input3", type: "number", placeholder: "Quantidade" },
+        { name: "winRateThreshold", type: "number", placeholder: "Limite de vitoria" },
+        { name: "startTime", type: "date", placeholder: "Inicio" },
+        { name: "endTime", type: "date", placeholder: "Fim" }
       ],
     },
-    // Adicione mais cards conforme necessário
+    {
+      title: "Derrotas por Combo",
+      apiUrl: "/api/calcularDerrotasPorCombo",
+      inputs: [
+        { name: "cartasCombo", type: "text", placeholder: "Carta" },
+        { name: "startTime", type: "date", placeholder: "Inicio" },
+        { name: "endTime", type: "date", placeholder: "Fim" }
+      ],
+    },
+    {
+      title: "Vitorias Com trofeus",
+      apiUrl: "/api/calcularVitoriasCartaZTrof",
+      inputs: [
+        { name: "carta", type: "text", placeholder: "Carta" },
+        { name: "percTrof", type: "number", placeholder: "% trofeus" },
+        { name: "startTime", type: "date", placeholder: "Inicio" },
+        { name: "endTime", type: "date", placeholder: "Fim" }
+      ],
+    },
+    {
+      title: "Combos Vitoriosos",
+      apiUrl: "/api/listarCombosVitoriosos",
+      inputs: [
+        { name: "tamanhoCombo", type: "number", placeholder: "Tamanho do combo" },
+        { name: "percentualVitorias", type: "number", placeholder: "% Vitorias" },
+        { name: "startTime", type: "date", placeholder: "Inicio" },
+        { name: "endTime", type: "date", placeholder: "Fim" }
+      ],
+    },
+    {
+      title: "Cartas mais Vitoriosas",
+      apiUrl: "/api/listarCartasMaisFrequentesEmVitorias"
+    },
+    {
+      title: "Cartas mais Derrotadas",
+      apiUrl: "/api/rankingCartasMaisDerrotas",
+      inputs: [
+        { name: "startTime", type: "date", placeholder: "Inicio" },
+        { name: "endTime", type: "date", placeholder: "Fim" }
+      ],
+    },
+    {
+      title: "Cartas Com Maiores Taxas de Vitoria",
+      apiUrl: "/api/cartasComMaioresTaxasDeVitoria",
+      inputs: [
+        { name: "startTime", type: "date", placeholder: "Inicio" },
+        { name: "endTime", type: "date", placeholder: "Fim" }
+      ],
+    },
   ];
 
   return (

@@ -107,7 +107,7 @@ async function getHighWinRateDecks(startDate, endDate, winRateThreshold) {
     const results = await Battle.aggregate([
       {
         $match: {
-          battleTime: { $gte: startDate, $lte: endDate }
+          battleTime: { $gte: new Date(startDate), $lte: new Date(endDate) }
         }
       },
       {
@@ -157,6 +157,7 @@ async function getHighWinRateDecks(startDate, endDate, winRateThreshold) {
       player2Deck: result.deck.player2Deck,
       winRate: result.winRate
     })));
+    return results
   } catch (error) {
     console.error(error);
   }
